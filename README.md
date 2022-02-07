@@ -1,2 +1,2 @@
 # CourseSelection-Teacher
-Course Selection System for teachers
+Course Selection System implemented by Vue
