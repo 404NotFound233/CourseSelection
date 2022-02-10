@@ -1,27 +1,48 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import Home from '../views/Home.vue'
+
+const Login = () => import('../views/authorization/Login.vue')
+const Signin = () => import('../views/authorization/Signin.vue')
+const Page401 = () => import('../views/authorization/Page401.vue')
+const Page404 = () => import('../views/authorization/Page404.vue')
+const ValidateEmail = () => import('../views/authorization/ValidateEmail.vue')
 
 Vue.use(VueRouter)
 
 const routes = [
   {
-    path: '/',
-    name: 'Home',
-    component: Home
+    path: '/login',
+    name: 'login',
+    component: Login
   },
   {
-    path: '/about',
-    name: 'About',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/About.vue')
+    path: '/signin',
+    name: 'signin',
+    component: Signin
+  },
+  {
+    path: '/unauthenticated',
+    name: 'unauthenticated',
+    component: Page401
+  },
+  {
+    path: '/validate',
+    component: ValidateEmail
+  },
+  {
+    path: '/notfound',
+    name: 'notfound',
+    component: Page404
+  },
+  {
+    path: '/(.+)',
+    redirect: '/notfound'
   }
 ]
 
 const router = new VueRouter({
-  routes
+  routes,
+  mode: 'history'
 })
 
 export default router
