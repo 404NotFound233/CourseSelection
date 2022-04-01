@@ -43,7 +43,7 @@
             class="my-input"
             v-model="email"
             :fetch-suggestions="email_extension"
-            placeholder="请设置您的邮箱"
+            placeholder="请使用教育邮箱"
             @select="handle_select" @change="check_has_email" @focus="email_focus"></el-autocomplete>
         <i class="el-icon-check" v-show="has_email == 1"></i>
         <i class="el-icon-close" v-show="has_email == -1"></i>

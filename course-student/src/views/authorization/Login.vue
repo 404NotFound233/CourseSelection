@@ -31,7 +31,7 @@
 
 <script>
   import ElInput from "../../../node_modules/element-ui/packages/input/src/input";
-  import "../../assets/css/form.css"
+  import "../../assets/css/form.css";
   import {safe_request} from "../../network/safe_request";
   export default {
     name: 'Login',

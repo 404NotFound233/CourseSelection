@@ -30,10 +30,11 @@
       const token = this.$route.query.token;
       if (token == null || typeof(token) == 'undefined') {
         this.tip = '非法访问！此页面尚不支持访问！';
-        this.img_url = require('../../assets/unauthenticated.png');
+        this.img_url = '/unauthenticated.png';
         this.loading = false;
       }
       else {
+        console.log("!")
         request({
           url: '/authorization/validateEmail',
           params: {
@@ -42,7 +43,7 @@
         }).then(res => {
           if (res.status == 200 && res.data.state == '200') {
             this.tip = '账户已经成功激活！可前往登录！';
-            this.img_url = require('../../assets/success.png');
+            this.img_url = '/success.png';
             this.loading = false;
           }
           else {
@@ -50,7 +51,7 @@
           }
         }).catch(err =>{
           this.tip = '网络或链接错误，或链接已过期，请重新进行注册';
-          this.img_url = require('../../assets/failure.png');
+          this.img_url = '/failure.png';
           this.loading = false;
         })
       }

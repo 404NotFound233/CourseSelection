@@ -106,7 +106,7 @@
                 const token = res.headers["token"];
                 localStorage.removeItem("token");
                 localStorage.setItem("token", token);
-                this.$router.push('/home');
+                this.$router.push('/choice');
               }
               else {
                 // alert用户名或密码错误
