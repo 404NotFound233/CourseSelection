@@ -169,7 +169,13 @@
         courseForm: {},
         classTime: {},
         courses: [],
-        filter: {},
+        filter: {
+          'name': '',
+          'teacher': '',
+          'campus': '',
+          'college': '',
+          'code': ''
+        },
         additionalHeader: {'token': null}
       }
     },
@@ -303,7 +309,10 @@
         request({
           url: '/course/query/filter',
           method: 'post',
-          data: this.filter
+          data: this.filter,
+          headers: {
+            'token': localStorage.getItem('token')
+          }
         }).then(res => {
           if (res.status == 200 && res.data.state == 200) {
             const dataset = res.data.dataset;

@@ -8,36 +8,31 @@
         </div>
         <div class="filter">
           <div>开始日期</div>
-          <el-date-picker v-model="filter.start" type="date"
+          <el-date-picker v-model="filter.start" type="date" value-format="timestamp"
               placeholder="开始日期">
           </el-date-picker>
         </div>
         <div class="filter">
           <div>结束时间</div>
-          <el-date-picker v-model="filter.end" type="date"
+          <el-date-picker v-model="filter.end" type="date" value-format="timestamp"
                           placeholder="结束时间">
           </el-date-picker>
         </div>
         <div class="filter" style="diplay: flex; justify-content: center; align-items: center;margin-left: 2vw;">
           <div>&nbsp;</div>
-          <i class="el-icon-search"></i>
+          <i class="el-icon-search" @click="queryWithFilter"></i>
         </div>
       </div>
       <div class="table-container">
         <el-table :data="activities" class="act-table" height="100%" emptyText="暂无符合条件的选课安排"
                   cellClassName="table-cell" headerRowClassName="header-row"
-                  headerCellClassName="header-row" :rowClassName="rowClassHandler">
+                  headerCellClassName="header-row" rowClassName="table-cell">
           <el-table-column prop="name" label="选课安排" sortable></el-table-column>
-          <el-table-column prop="startd" label="开始日期" sortable></el-table-column>
-          <el-table-column prop="endd" label="结束日期" sortable></el-table-column>
-          <el-table-column prop="startt" label="开始时间" sortable></el-table-column>
-          <el-table-column prop="endt" label="结束时间" sortable></el-table-column>
+          <el-table-column prop="start" label="开始时间" sortable></el-table-column>
+          <el-table-column prop="end" label="结束时间" sortable></el-table-column>
           <el-table-column fixed="right" label="操作">
             <template slot-scope="scope">
-              <el-button @click="handleClick(scope.row)" type="text" size="small"
-                         v-if="scope.row.chosen == false">管理</el-button>
-              <el-button @click="handleClick(scope.row)" type="text" size="small"
-                         v-if="scope.row.chosen == false" disabled>已结束</el-button>
+              <el-button @click="manageActivity(scope.row)" type="text" size="small">管理</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -47,7 +42,34 @@
     <div class="avatar-screen" @click="logout">登出</div>
     <div class="welcome">{{tnumber}}</div>
     <div class="welcome" style="top: 26vh;">{{tname}}</div>
-    <el-button class="add-button" type="primary">添加安排</el-button>
+    <el-button class="add-button" type="primary" @click="addVisible = true">添加安排</el-button>
+    <el-dialog title="添加安排" :visible.sync="addVisible">
+      <el-form :model="activityForm" :rules="rules" label-width="80px" ref="activityForm">
+        <el-form-item label="安排名称" prop="name">
+          <el-input v-model="activityForm.name" placeholder="安排名称"></el-input>
+        </el-form-item>
+        <el-form-item label="持续时间" prop="duration">
+          <el-date-picker v-model="activityForm.duration"
+              type="datetimerange" value-format="timestamp"
+              range-separator="至"
+              start-placeholder="开始时间"
+              end-placeholder="结束时间">
+          </el-date-picker>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="addVisible = false">取 消</el-button>
+        <el-button @click="addActivity">添加</el-button>
+      </div>
+    </el-dialog>
+    <el-dialog title="绑定课程" :visible.sync="bindVisible">
+      <div>课程代码</div>
+      <el-input v-model="bindCode" placeholder="课程代码"></el-input>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="bindVisible = false">取 消</el-button>
+        <el-button @click="realBind">绑定</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -55,23 +77,187 @@
   import "../../assets/css/form.css";
   import "../../assets/css/fonts.css";
   import ElButton from "../../../node_modules/element-ui/packages/button/src/button";
+  import {request} from "../../network/request";
   export default {
     name: 'Home',
     components: {},
     data() {
+      var validateDuration = (rule, value, callback) => {
+        if (value == null || typeof(value) == 'undefined' || value == '' || value == 0) {
+          callback(new Error('请设置持续时间'));
+        } else {
+          const start = value[0];
+          const end = value[1];
+          if (start == null || typeof(start) == 'undefined' || start == '' || start == 0) {
+            callback(new Error('请设置开始时间'));
+          }
+          else if (end == null || typeof(end) == 'undefined' || end == '' || end == 0) {
+            callback(new Error('请设置结束时间'));
+          }
+          else {
+            callback();
+          }
+        }
+      };
       return {
         avatarUrl: require('../../assets/teacher_avatar.png'),
         tnumber: 'DG21130031',
         tname: '大大明',
         activities: [],
-        filter: {}
+        filter: {
+          'name': '',
+          'start': 0,
+          'end': 0
+        },
+        addVisible: false,
+        rules: {
+          name: [
+            { required: true, message: '请输入安排名称', trigger: 'blur' },
+          ],
+          duration: [
+            { required: true, message: '请设置持续时间', trigger: 'blur' },
+            { validator: validateDuration, trigger: 'blur'}
+          ]
+        },
+        activityForm: {},
+        bindVisible: false,
+        curRow: null,
+        bindCode: ''
       }
+    },
+    mounted: function () {
+      this.refreshTable();
     },
     methods: {
       logout: function() {
         localStorage.removeItem("token");
         this.$router.push('/login');
       },
+      addActivity: function () {
+        const that = this;
+        this.$refs['activityForm'].validate((valid) => {
+          if (valid) {
+            request({
+              url: '/activity/add',
+              method: 'post',
+              data: {
+                'name': that.activityForm.name,
+                'start': that.activityForm.duration[0],
+                'end': that.activityForm.duration[1],
+              },
+              headers: {
+                'token': localStorage.getItem('token')
+              }
+            }).then(res => {
+              if (res.status == 200 && res.data.state == '200') {
+                that.addVisible = false;
+                that.activityForm = {};
+                that.$message.success('添加成功！');
+                that.refreshTable();
+              }
+              else {
+                that.$message.error('添加失败！');
+              }
+            }).catch(err => {
+              console.log(err);
+              that.$message.error('添加失败！');
+            })
+          } else {
+            that.$message.error('请检查您的安排设置！');
+            return false;
+          }
+        });
+      },
+      refreshTable: function () {
+        const that = this;
+        request({
+          url: '/activity/query/all',
+          headers: {
+            'token': localStorage.getItem('token')
+          }
+        }).then(res => {
+          if (res.status == 200 && res.data.state == '200') {
+            that.activities = res.data.dataset.content;
+            for (let i = 0; i < that.activities.length; ++i) {
+              const startdate = new Date(that.activities[i].start);
+              const enddate = new Date(that.activities[i].end);
+              that.activities[i].start = (startdate.getMonth() + 1).toString() + ' 月 ' +
+                startdate.getDate().toString() + ' 日 ' + startdate.getHours().toString() + ':'
+                + startdate.getMinutes().toString() + ':' + startdate.getSeconds().toString();
+              that.activities[i].end = (enddate.getMonth() + 1).toString() + ' 月 ' +
+                enddate.getDate().toString() + ' 日 ' + enddate.getHours().toString() + ':'
+                + enddate.getMinutes().toString() + ':' + enddate.getSeconds().toString();
+            }
+          }
+        }).catch(err => {
+          console.log(err);
+          that.$message.error('查询失败');
+        })
+      },
+      manageActivity: function (row) {
+        this.bindVisible = true;
+        this.curRow = row;
+      },
+      realBind: function () {
+        const activityId = this.curRow.id;
+        const that = this;
+        request({
+          url: '/activity/bind',
+          method: 'post',
+          data: {
+            activity: activityId,
+            course: this.bindCode
+          },
+          headers: {
+            'token': localStorage.getItem('token')
+          }
+        }).then(res => {
+          if (res.status == 200 && res.data.state == '200') {
+            that.bindVisible = false;
+            that.curRow = null;
+            that.$message.success('添加成功！');
+          }
+          else {
+            console.log(err);
+            that.$message.error('添加失败！');
+          }
+        }).catch(err => {
+          console.log(err);
+          that.$message.error('添加失败！');
+        });
+      },
+      queryWithFilter: function () {
+        const that = this;
+        request({
+          url: '/activity/query/filter',
+          method: 'post',
+          data: this.filter,
+          headers: {
+            'token': localStorage.getItem('token')
+          }
+        }).then(res => {
+          if (res.status == 200 && res.data.state == '200') {
+            that.activities = res.data.dataset.content;
+            for (let i = 0; i < that.activities.length; ++i) {
+              const startdate = new Date(that.activities[i].start);
+              const enddate = new Date(that.activities[i].end);
+              that.activities[i].start = (startdate.getMonth() + 1).toString() + ' 月 ' +
+                startdate.getDate().toString() + ' 日 ' + startdate.getHours().toString() + ':'
+                + startdate.getMinutes().toString() + ':' + startdate.getSeconds().toString();
+              that.activities[i].end = (enddate.getMonth() + 1).toString() + ' 月 ' +
+                enddate.getDate().toString() + ' 日 ' + enddate.getHours().toString() + ':'
+                + enddate.getMinutes().toString() + ':' + enddate.getSeconds().toString();
+            }
+          }
+          else {
+            console.log(err);
+            that.$message.error('查询失败');
+          }
+        }).catch(err => {
+          console.log(err);
+          that.$message.error('查询失败');
+        });
+      }
     }
   }
 </script>
@@ -213,7 +399,7 @@
     padding: 0.8vw;
     font-weight: bold;
   }
-  .el-input__inner{
+  .act-list .el-input__inner{
     width: 12vw !important;
     height: 4vh !important;
     font-size: 1.5vh !important;
@@ -238,6 +424,7 @@
   }
   .el-table .table-cell {
     background-color: rgba(255, 255, 255, 0) !important;
+    cursor: default;
   }
   .el-table .line-row-ended {
     background-color: rgba(255, 255, 255, 0) !important;
