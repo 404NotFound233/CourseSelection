@@ -91,6 +91,7 @@
           });
         }
         else {
+          const that = this;
           const login_request = safe_request({
             url: '/authorization/login',
             params: {
@@ -106,7 +107,7 @@
                 const token = res.headers["token"];
                 localStorage.removeItem("token");
                 localStorage.setItem("token", token);
-                this.$router.push('/home');
+                this.$router.push({path: '/home'});
               }
               else {
                 // alert用户名或密码错误

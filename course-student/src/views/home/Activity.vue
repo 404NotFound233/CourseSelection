@@ -4,7 +4,7 @@
       <div class="filter-container" style="border-bottom: 0.1vh solid black;">
         <div class="filter">
           <div>课程代码</div>
-          <el-input  class='finput' v-model="filter.idx" placeholder="课程代码" clearable></el-input>
+          <el-input  class='finput' v-model="filter.code" placeholder="课程代码" clearable></el-input>
         </div>
         <div class="filter">
           <div>课程名称</div>
@@ -16,7 +16,7 @@
         </div>
         <div class="filter">
           <div>任课教师</div>
-          <el-input  class='finput' v-model="filter.teacher" placeholder="任课教师" clearable></el-input>
+          <el-input  class='finput' v-model="filter.teachers" placeholder="任课教师" clearable></el-input>
         </div>
         <div class="filter">
           <div>授课校区</div>
@@ -28,20 +28,21 @@
         </div>
       </div>
       <div class="table-container">
-        <el-table :data="courses" class="course-table" height="100%" emptyText="暂无符合条件的课程"
+        <el-table :data="coursesAfterFilter" class="course-table" height="100%" emptyText="暂无符合条件的课程"
                   cellClassName="table-cell" headerRowClassName="header-row"
                   headerCellClassName="header-row" :rowClassName="rowClassHandler">
-          <el-table-column prop="idx" label="课程代码" sortable></el-table-column>
+          <el-table-column prop="code" label="课程代码" sortable></el-table-column>
           <el-table-column prop="name" label="课程名称" sortable></el-table-column>
           <el-table-column prop="college" label="开课学院" sortable></el-table-column>
-          <el-table-column prop="teacher" label="任课老师" sortable></el-table-column>
-          <el-table-column prop="time" label="授课时间" sortable></el-table-column>
+          <el-table-column prop="teachers" label="任课老师" sortable></el-table-column>
+          <el-table-column prop="classHour" label="授课时间" sortable></el-table-column>
           <el-table-column prop="campus" label="授课校区" sortable></el-table-column>
+          <el-table-column prop="condition" label="选课情况"></el-table-column>
           <el-table-column fixed="right" label="操作">
             <template slot-scope="scope">
-              <el-button @click="handleClick(scope.row)" type="text" size="small"
+              <el-button @click="handleChoose(scope.row)" type="text" size="small"
                          v-if="scope.row.chosen == false">选课</el-button>
-              <el-button @click="handleClick(scope.row)" type="text" size="small"
+              <el-button @click="handleNotChoose(scope.row)" type="text" size="small"
                          style="color: red !important;"
                          v-show="scope.row.chosen == true">退选</el-button>
             </template>
@@ -71,28 +72,19 @@
         avatarUrl: require('../../assets/student_avatar.png'),
         snumber: 'MF21320043',
         sname: '小小明',
-        filter: {},
-        courses: [
-          {
-            'idx': 'DZ0291',
-            'name': '自然辩证法',
-            'teacher': '黄秋霞',
-            'college': '哲学院',
-            'campus': '鼓楼校区',
-            'time': '周四 3~4节/ 周五 1~2节',
-            'chosen': false
-          },
-          {
-            'idx': 'DZ0292',
-            'name': '自然辩证法II',
-            'teacher': '黄春霞',
-            'college': '软件学院',
-            'campus': '鼓楼校区/仙林校区',
-            'time': '周四 3~4节/ 周五 1~2节',
-            'chosen': true
-          },
-        ]
+        filter: {
+          'code': '',
+          'name': '',
+          'campus': '',
+          'college': '',
+          'teachers': ''
+        },
+        courses: [],
+        chosen: []
       }
+    },
+    mounted: function() {
+      this.refreshTable();
     },
     methods: {
       rowClassHandler({row, rowIndex}) {
@@ -101,6 +93,111 @@
         }
         else {
           return 'line-row-unchosen';
+        }
+      },
+      refreshTable() {
+        const that = this;
+        request({
+          url: '/student/course/query/activity',
+          headers: {
+            'token': localStorage.getItem('token')
+          },
+          params: {
+            id: this.$route.query.id
+          }
+        }).then(res => {
+          if (res.status == 200 && res.data.state == '200') {
+            that.courses = res.data.dataset.content;
+            let courseIds = [];
+            for (let i = 0; i < that.courses.length; ++i) {
+              courseIds.push(that.courses[i].id);
+              that.courses[i].chosen = false;
+            }
+            request({
+              url: 'student/course/chosen',
+              headers: {
+                'token': localStorage.getItem('token')
+              },
+              data: {
+                'token': localStorage.getItem('token'),
+                'courses': courseIds
+              }
+            }).then(res => {
+              if (res.status == 200 && res.data.state == '200') {
+                for (x in res.data.dataset.content) {
+                  that.courses[x].chosen = true;
+                }
+              }
+            }).catch(err => {
+              that.$message.error('查询失败！');
+              console.log(err);
+            });
+          }
+          else {
+            that.$message.error('查询失败！');
+            console.log(res.data.message);
+          }
+        }).catch(err => {
+          that.$message.error('查询失败！');
+          console.log(err);
+        });
+      },
+      handleChoose(row) {
+        const that = this;
+        request({
+          url: 'student/course/choose',
+          headers: {
+            'token': localStorage.getItem('token')
+          },
+          method: 'post',
+          data: {
+            'token': localStorage.getItem('token'),
+            'course': row.id
+          }
+        }).then(res => {
+          if (res.status == 200 && res.data.state == '200') {
+            row.chosen = true;
+          }
+          else {
+            console.log(res.data.message);
+            that.$message.error('选课失败！');
+          }
+        }).catch(err => {
+          console.log(err);
+          that.$message.error('选课失败！');
+        });
+      },
+      handleNotChoose(row) {
+        const that = this;
+        request({
+          url: 'student/course/quit',
+          headers: {
+            'token': localStorage.getItem('token')
+          },
+          method: 'post',
+          data: {
+            'token': localStorage.getItem('token'),
+            'course': row.id
+          }
+        }).then(res => {
+          if (res.status == 200 && res.data.state == '200') {
+            row.chosen = false;
+          }
+          else {
+            console.log(res.data.message);
+            that.$message.error('退选失败！');
+          }
+        }).catch(err => {
+          console.log(err);
+          that.$message.error('退选失败！');
+        });
+      }
+    },
+    computed: {
+      coursesAfterFilter: function () {
+
+        if (this.filter.code != '') {
+          const filter = RegExp("^.*" + this.filter.code + ".*$", "i");
         }
       }
     }

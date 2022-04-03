@@ -1,7 +1,7 @@
 <template>
   <div class="home">
     <div class="activities-list">
-      <div class="activity" v-for="(activity, idx) in activities">
+      <div class="activity" v-for="(activity, idx) in activities" @click="routeTo(activity.id)">
         <div class="act-logo">
           {{activity.name[0]}}
         </div>
@@ -21,6 +21,7 @@
 <script>
   import "../../assets/css/form.css";
   import "../../assets/css/fonts.css";
+  import {request} from "../../network/request";
   export default {
     name: 'Home',
     components: {},
@@ -30,14 +31,38 @@
       }
     },
     methods: {
-      actIntroContent: function(str) {
+      actIntroContent: function (str) {
         if (str.length > 9) {
           return str.substring(0, 8) + '...'
         }
         return str;
+      },
+      refreshActivities: function () {
+        const that = this;
+        request({
+          url: '/student/activity/list',
+          headers: {
+            'token': localStorage.getItem('token')
+          }
+        }).then(res => {
+          if (res.status == 200 && res.data.state == '200') {
+            that.activities = res.data.dataset.content;
+          }
+          else {
+            console.log(err);
+            that.$message.error('查询失败！');
+          }
+        }).catch(err => {
+          console.log(err);
+          that.$message.error('查询失败！');
+        });
+      },
+      routeTo: function (id) {
+        this.$router.push({path:'/act',query: {id: id}});
       }
     },
-    computed: {
+    mounted: function (){
+      this.refreshActivities();
     }
   }
 </script>
