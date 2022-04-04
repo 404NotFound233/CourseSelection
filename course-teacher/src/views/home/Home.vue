@@ -64,7 +64,9 @@
     </el-dialog>
     <el-dialog title="绑定课程" :visible.sync="bindVisible">
       <div>课程代码</div>
-      <el-input v-model="bindCode" placeholder="课程代码"></el-input>
+      <el-input v-model="bindBody.code" placeholder="课程代码"></el-input>
+      <div>课程容量</div>
+      <el-input v-model="bindBody.capacity" placeholder="课程容量"></el-input>
       <div slot="footer" class="dialog-footer">
         <el-button @click="bindVisible = false">取 消</el-button>
         <el-button @click="realBind">绑定</el-button>
@@ -122,7 +124,10 @@
         activityForm: {},
         bindVisible: false,
         curRow: null,
-        bindCode: ''
+        bindBody: {
+          code: '',
+          capacity: 0
+        }
       }
     },
     mounted: function () {
@@ -206,7 +211,8 @@
           method: 'post',
           data: {
             activity: activityId,
-            course: this.bindCode
+            course: this.bindBody.code,
+            capacity: this.bindBody.capacity
           },
           headers: {
             'token': localStorage.getItem('token')
