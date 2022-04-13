@@ -138,7 +138,7 @@
     data() {
       return {
         avatarUrl: require('../../assets/teacher_avatar.png'),
-        uploadUrl: 'http://localhost:8082/course/add/multiple',
+        uploadUrl: 'http://172.19.241.75:8080/course/add/multiple',
         tnumber: 'DG21130031',
         tname: '大大明',
         addDialogVisible: false,
