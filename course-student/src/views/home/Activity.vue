@@ -345,6 +345,7 @@
             'college': this.courses[i].college,
             'condition': this.courses[i].condition,
             'classHour': this.courses[i].classHour
+			'chosen':this.courses[i].chosen
           });
         }
         let res = false;
