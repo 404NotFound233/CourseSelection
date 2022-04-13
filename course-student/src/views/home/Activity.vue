@@ -344,7 +344,7 @@
             'teachers': this.courses[i].teachers,
             'college': this.courses[i].college,
             'condition': this.courses[i].condition,
-            'classHour': this.courses[i].classHour
+            'classHour': this.courses[i].classHour,
 			'chosen':this.courses[i].chosen
           });
         }
